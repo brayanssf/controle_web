@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 public class AutenticacaoController {
 
-    private final AutenticacaoService autenticacaoService;
+    private final AutenticacaoService autenticacaoService = null;
 
     @PostMapping("/registrar")
     @Operation(summary = "Registrar novo usuário")

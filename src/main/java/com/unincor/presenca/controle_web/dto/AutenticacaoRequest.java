@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-
 public class AutenticacaoRequest {
 
     @NotBlank(message = "Email é obrigatório")
