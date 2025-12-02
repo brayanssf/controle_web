@@ -1,4 +1,4 @@
-package com.unincor.presenca.controle_web.controller.dto;
+package com.unincor.presenca.controle_web.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

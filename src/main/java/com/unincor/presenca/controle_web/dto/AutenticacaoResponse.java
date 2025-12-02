@@ -1,4 +1,4 @@
-package com.unincor.presenca.controle_web.controller.dto;
+package com.unincor.presenca.controle_web.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

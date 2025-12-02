@@ -1,8 +1,8 @@
 package com.unincor.presenca.controle_web.model.service;
 
-import com.unincor.presenca.controle_web.controller.dto.AutenticacaoRequest;
-import com.unincor.presenca.controle_web.controller.dto.AutenticacaoResponse;
-import com.unincor.presenca.controle_web.controller.dto.RegistroRequest;
+import com.unincor.presenca.controle_web.dto.AutenticacaoRequest;
+import com.unincor.presenca.controle_web.dto.AutenticacaoResponse;
+import com.unincor.presenca.controle_web.dto.RegistroRequest;
 import com.unincor.presenca.controle_web.model.domain.Usuario;
 import com.unincor.presenca.controle_web.model.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;

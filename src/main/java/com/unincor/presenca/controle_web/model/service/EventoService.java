@@ -1,6 +1,6 @@
 package com.unincor.presenca.controle_web.model.service;
 
-import com.unincor.presenca.controle_web.controller.dto.EventoRequest;
+import com.unincor.presenca.controle_web.dto.EventoRequest;
 import com.unincor.presenca.controle_web.model.domain.Evento;
 import com.unincor.presenca.controle_web.model.repository.EventoRepository;
 import lombok.RequiredArgsConstructor;

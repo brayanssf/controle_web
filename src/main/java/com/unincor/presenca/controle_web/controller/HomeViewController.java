@@ -21,5 +21,5 @@ public class HomeViewController {
     public String cadastro() {
         return "redirect:/cadastro.html";
     }
-    
+
 }

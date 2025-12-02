@@ -17,7 +17,6 @@
     </header>
 
     <main class="container">
-        <!-- Formulário de Criação (Apenas Admin) -->
         <div class="card" id="criarEventoCard" style="display: none;">
             <h2>Criar Novo Evento</h2>
             <form id="eventoForm" aria-label="Formulário de evento">
@@ -59,7 +58,6 @@
             </form>
         </div>
 
-        <!-- Lista de Eventos -->
         <div class="card">
             <h2>Lista de Eventos</h2>
             <div id="eventosContainer"></div>
@@ -70,7 +68,6 @@
     <script>
         let eventos = [];
 
-        // Carregar eventos
         async function carregarEventos() {
             const container = document.getElementById('eventosContainer');
             mostrarCarregando(container);
@@ -83,7 +80,6 @@
             }
         }
 
-        // Renderizar lista de eventos
         function renderizarEventos() {
             const container = document.getElementById('eventosContainer');
 
@@ -140,7 +136,6 @@
             `;
         }
 
-        // Inscrever no evento
         async function inscreverNoEvento(eventoId) {
             const genero = prompt('Informe seu gênero:\n1 - Masculino\n2 - Feminino\n3 - Outro\n4 - Prefiro não informar');
 
@@ -168,7 +163,6 @@
             }
         }
 
-        // Editar evento
         async function editarEvento(eventoId) {
             const evento = eventos.find(e => e.id === eventoId);
             if (!evento) return;
@@ -187,7 +181,6 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Deletar evento
         async function deletarEvento(eventoId) {
             if (!confirm('Deseja realmente deletar este evento?')) return;
 
@@ -200,7 +193,6 @@
             }
         }
 
-        // Submeter formulário
         document.getElementById('eventoForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -222,7 +214,6 @@
                 const eventoId = e.target.dataset.eventoId;
 
                 if (eventoId) {
-                    // Atualizar
                     await requisicaoAPI(`/api/eventos/${eventoId}`, {
                         method: 'PUT',
                         body: JSON.stringify(dados)
@@ -231,7 +222,6 @@
                     delete e.target.dataset.eventoId;
                     btnSubmit.textContent = 'Criar Evento';
                 } else {
-                    // Criar
                     await requisicaoAPI('/api/eventos', {
                         method: 'POST',
                         body: JSON.stringify(dados)
@@ -249,15 +239,12 @@
             }
         });
 
-        // Mostrar formulário apenas para admins
         if (ehAdmin()) {
             document.getElementById('criarEventoCard').style.display = 'block';
         }
 
-        // Carregar eventos ao iniciar
         carregarEventos();
 
-        // Expor funções globalmente
         window.inscreverNoEvento = inscreverNoEvento;
         window.editarEvento = editarEvento;
         window.deletarEvento = deletarEvento;
