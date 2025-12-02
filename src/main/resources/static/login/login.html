@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Controle de Eventos</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+
+<body>
+    <div class="container" style="max-width: 500px; margin-top: 100px;">
+        <div class="card">
+            <h2>Login</h2>
+            <form id="loginForm" aria-label="Formulário de login">
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required aria-required="true"
+                        placeholder="seu@email.com" autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="senha">Senha:</label>
+                    <input type="password" id="senha" name="senha" required aria-required="true"
+                        placeholder="Digite sua senha" autocomplete="current-password">
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    Entrar
+                </button>
+            </form>
+
+            <p style="text-align: center; margin-top: 1rem;">
+                Não tem conta? <a href="/cadastro.html">Cadastre-se</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            const btnSubmit = e.target.querySelector('button[type="submit"]');
+
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Entrando...';
+
+            try {
+                const response = await requisicaoAPI('/api/autenticacao/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, senha })
+                });
+
+                localStorage.setItem('token', response.token);
+                localStorage.setItem('dadosUsuario', JSON.stringify({
+                    email: response.email,
+                    nome: response.nome,
+                    papel: response.papel
+                }));
+
+                window.location.href = '/eventos.html';
+            } catch (error) {
+                mostrarAlerta('Email ou senha incorretos', 'error');
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Entrar';
+            }
+        });
+    </script>
+</body>
+
+</html>

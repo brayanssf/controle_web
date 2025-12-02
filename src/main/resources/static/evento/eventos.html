@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eventos - Sistema de Controle de Eventos</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <h1>Sistema de Controle de Eventos</h1>
+            <nav></nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Formulário de Criação (Apenas Admin) -->
+        <div class="card" id="criarEventoCard" style="display: none;">
+            <h2>Criar Novo Evento</h2>
+            <form id="eventoForm" aria-label="Formulário de evento">
+                <div class="form-group">
+                    <label for="titulo">Título: *</label>
+                    <input type="text" id="titulo" required aria-required="true">
+                </div>
+
+                <div class="form-group">
+                    <label for="descricao">Descrição:</label>
+                    <textarea id="descricao" rows="4" placeholder="Descreva o evento"></textarea>
+                </div>
+
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label for="dataInicio">Data Início: *</label>
+                        <input type="datetime-local" id="dataInicio" required aria-required="true">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dataFim">Data Fim: *</label>
+                        <input type="datetime-local" id="dataFim" required aria-required="true">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="local">Local: *</label>
+                    <input type="text" id="local" required aria-required="true" placeholder="Local do evento">
+                </div>
+
+                <div class="form-group">
+                    <label for="maxParticipantes">Máximo de Participantes:</label>
+                    <input type="number" id="maxParticipantes" min="0" value="0"
+                        aria-describedby="maxParticipantesHelp">
+                    <small id="maxParticipantesHelp">0 = ilimitado</small>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Criar Evento</button>
+            </form>
+        </div>
+
+        <!-- Lista de Eventos -->
+        <div class="card">
+            <h2>Lista de Eventos</h2>
+            <div id="eventosContainer"></div>
+        </div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script>
+        let eventos = [];
+
+        // Carregar eventos
+        async function carregarEventos() {
+            const container = document.getElementById('eventosContainer');
+            mostrarCarregando(container);
+
+            try {
+                eventos = await requisicaoAPI('/api/eventos');
+                renderizarEventos();
+            } catch (error) {
+                container.innerHTML = '<p class="alert alert-error">Erro ao carregar eventos</p>';
+            }
+        }
+
+        // Renderizar lista de eventos
+        function renderizarEventos() {
+            const container = document.getElementById('eventosContainer');
+
+            if (eventos.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>Nenhum evento disponível no momento.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Título</th>
+                            <th>Data Início</th>
+                            <th>Local</th>
+                            <th>Vagas</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${eventos.map(evento => `
+                            <tr>
+                                <td>
+                                    <strong>${evento.titulo}</strong>
+                                    ${evento.descricao ? `<br><small>${evento.descricao}</small>` : ''}
+                                </td>
+                                <td>${formatarData(evento.dataInicio)}</td>
+                                <td>${evento.local}</td>
+                                <td>${evento.maxParticipantes > 0 ? evento.maxParticipantes : 'Ilimitado'}</td>
+                                <td>
+                                    <button class="btn btn-success" onclick="inscreverNoEvento(${evento.id})" 
+                                            aria-label="Inscrever-se no evento ${evento.titulo}">
+                                        Inscrever-se
+                                    </button>
+                                    ${ehAdmin() ? `
+                                        <button class="btn btn-warning" onclick="editarEvento(${evento.id})"
+                                                aria-label="Editar evento ${evento.titulo}">
+                                            Editar
+                                        </button>
+                                        <button class="btn btn-danger" onclick="deletarEvento(${evento.id})"
+                                                aria-label="Deletar evento ${evento.titulo}">
+                                            Deletar
+                                        </button>
+                                    ` : ''}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Inscrever no evento
+        async function inscreverNoEvento(eventoId) {
+            const genero = prompt('Informe seu gênero:\n1 - Masculino\n2 - Feminino\n3 - Outro\n4 - Prefiro não informar');
+
+            const generos = {
+                '1': 'MASCULINO',
+                '2': 'FEMININO',
+                '3': 'OUTRO',
+                '4': 'NAO_INFORMAR'
+            };
+
+            if (!generos[genero]) {
+                mostrarAlerta('Opção inválida', 'error');
+                return;
+            }
+
+            try {
+                await requisicaoAPI(`/api/eventos/${eventoId}/inscrever`, {
+                    method: 'POST',
+                    body: JSON.stringify({ genero: generos[genero] })
+                });
+
+                mostrarAlerta('Inscrição realizada com sucesso!', 'success');
+            } catch (error) {
+                mostrarAlerta('Erro ao se inscrever: ' + error.message, 'error');
+            }
+        }
+
+        // Editar evento
+        async function editarEvento(eventoId) {
+            const evento = eventos.find(e => e.id === eventoId);
+            if (!evento) return;
+
+            document.getElementById('titulo').value = evento.titulo;
+            document.getElementById('descricao').value = evento.descricao || '';
+            document.getElementById('dataInicio').value = formatarDataInput(evento.dataInicio);
+            document.getElementById('dataFim').value = formatarDataInput(evento.dataFim);
+            document.getElementById('local').value = evento.local;
+            document.getElementById('maxParticipantes').value = evento.maxParticipantes;
+
+            const form = document.getElementById('eventoForm');
+            form.dataset.eventoId = eventoId;
+            document.querySelector('#eventoForm button[type="submit"]').textContent = 'Atualizar Evento';
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Deletar evento
+        async function deletarEvento(eventoId) {
+            if (!confirm('Deseja realmente deletar este evento?')) return;
+
+            try {
+                await requisicaoAPI(`/api/eventos/${eventoId}`, { method: 'DELETE' });
+                mostrarAlerta('Evento deletado com sucesso!', 'success');
+                carregarEventos();
+            } catch (error) {
+                mostrarAlerta('Erro ao deletar evento', 'error');
+            }
+        }
+
+        // Submeter formulário
+        document.getElementById('eventoForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const dados = {
+                titulo: document.getElementById('titulo').value,
+                descricao: document.getElementById('descricao').value,
+                dataInicio: document.getElementById('dataInicio').value,
+                dataFim: document.getElementById('dataFim').value,
+                local: document.getElementById('local').value,
+                maxParticipantes: parseInt(document.getElementById('maxParticipantes').value)
+            };
+
+            const btnSubmit = e.target.querySelector('button[type="submit"]');
+            btnSubmit.disabled = true;
+            const textoOriginal = btnSubmit.textContent;
+            btnSubmit.textContent = 'Salvando...';
+
+            try {
+                const eventoId = e.target.dataset.eventoId;
+
+                if (eventoId) {
+                    // Atualizar
+                    await requisicaoAPI(`/api/eventos/${eventoId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(dados)
+                    });
+                    mostrarAlerta('Evento atualizado com sucesso!', 'success');
+                    delete e.target.dataset.eventoId;
+                    btnSubmit.textContent = 'Criar Evento';
+                } else {
+                    // Criar
+                    await requisicaoAPI('/api/eventos', {
+                        method: 'POST',
+                        body: JSON.stringify(dados)
+                    });
+                    mostrarAlerta('Evento criado com sucesso!', 'success');
+                }
+
+                e.target.reset();
+                carregarEventos();
+            } catch (error) {
+                mostrarAlerta('Erro ao salvar evento: ' + error.message, 'error');
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = textoOriginal;
+            }
+        });
+
+        // Mostrar formulário apenas para admins
+        if (ehAdmin()) {
+            document.getElementById('criarEventoCard').style.display = 'block';
+        }
+
+        // Carregar eventos ao iniciar
+        carregarEventos();
+
+        // Expor funções globalmente
+        window.inscreverNoEvento = inscreverNoEvento;
+        window.editarEvento = editarEvento;
+        window.deletarEvento = deletarEvento;
+    </script>
+</body>
+
+</html>

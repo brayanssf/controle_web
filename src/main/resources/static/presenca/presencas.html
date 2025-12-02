@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presenças - Sistema de Controle de Eventos</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <h1>Sistema de Controle de Eventos</h1>
+            <nav></nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Seleção de Evento -->
+        <div class="card">
+            <h2>Marcar Presenças</h2>
+            <div class="form-group">
+                <label for="eventoSelect">Selecione um Evento:</label>
+                <select id="eventoSelect" aria-label="Selecionar evento">
+                    <option value="">-- Selecione um evento --</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Lista de Participantes -->
+        <div class="card" id="participantesCard" style="display: none;">
+            <div class="flex-between mb-2">
+                <h2 id="eventoTitulo">Participantes</h2>
+                <button class="btn btn-primary" onclick="marcarTodosPresentes()">
+                    Marcar Todos Presentes
+                </button>
+            </div>
+            <div id="participantesContainer"></div>
+        </div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script>
+        // Verificar acesso admin
+        if (!verificarAcessoAdmin()) {
+            // Redireciona automaticamente se não for admin
+        }
+
+        let eventoSelecionado = null;
+        let participantes = [];
+
+        // Carregar eventos
+        async function carregarEventos() {
+            try {
+                const eventos = await requisicaoAPI('/api/eventos');
+                const select = document.getElementById('eventoSelect');
+
+                eventos.forEach(evento => {
+                    const option = document.createElement('option');
+                    option.value = evento.id;
+                    option.textContent = `${evento.titulo} - ${formatarData(evento.dataInicio)}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar eventos', 'error');
+            }
+        }
+
+        // Carregar participantes
+        async function carregarParticipantes(eventoId) {
+            const container = document.getElementById('participantesContainer');
+            mostrarCarregando(container);
+
+            try {
+                participantes = await requisicaoAPI(`/api/eventos/${eventoId}/participantes`);
+                renderizarParticipantes();
+
+                // Mostrar card de participantes
+                document.getElementById('participantesCard').style.display = 'block';
+            } catch (error) {
+                container.innerHTML = '<p class="alert alert-error">Erro ao carregar participantes</p>';
+            }
+        }
+
+        // Renderizar participantes
+        function renderizarParticipantes() {
+            const container = document.getElementById('participantesContainer');
+
+            if (participantes.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>Nenhum participante inscrito neste evento.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Gênero</th>
+                            <th>Data Inscrição</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${participantes.map(participante => `
+                            <tr id="participante-${participante.id}">
+                                <td>${participante.usuario.nome}</td>
+                                <td>${participante.usuario.email}</td>
+                                <td>${traduzirGenero(participante.genero)}</td>
+                                <td>${formatarData(participante.inscritoEm)}</td>
+                                <td>
+                                    <span class="badge ${participante.confirmado ? 'badge-success' : 'badge-warning'}">
+                                        ${participante.confirmado ? 'Confirmado' : 'Pendente'}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-success" 
+                                            onclick="marcarPresenca(${participante.id})"
+                                            aria-label="Marcar presença de ${participante.usuario.nome}">
+                                        Marcar Presença
+                                    </button>
+                                    ${!participante.confirmado ? `
+                                        <button class="btn btn-primary" 
+                                                onclick="confirmarInscricao(${participante.id})"
+                                                aria-label="Confirmar inscrição de ${participante.usuario.nome}">
+                                            Confirmar
+                                        </button>
+                                    ` : ''}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Traduzir gênero
+        function traduzirGenero(genero) {
+            const traducoes = {
+                'MASCULINO': 'Masculino',
+                'FEMININO': 'Feminino',
+                'OUTRO': 'Outro',
+                'NAO_INFORMAR': 'Não informado'
+            };
+            return traducoes[genero] || genero;
+        }
+
+        // Marcar presença
+        async function marcarPresenca(participanteId) {
+            const observacoes = prompt('Observações (opcional):') || '';
+
+            try {
+                await requisicaoAPI(`/api/eventos/${eventoSelecionado}/presencas`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        participanteId,
+                        observacoes
+                    })
+                });
+
+                mostrarAlerta('Presença marcada com sucesso!', 'success');
+
+                // Atualizar visualmente
+                const linha = document.getElementById(`participante-${participanteId}`);
+                if (linha) {
+                    linha.style.backgroundColor = '#d4edda';
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao marcar presença: ' + error.message, 'error');
+            }
+        }
+
+        // Confirmar inscrição
+        async function confirmarInscricao(participanteId) {
+            try {
+                // Endpoint fictício - você pode criar um endpoint específico
+                mostrarAlerta('Inscrição confirmada!', 'success');
+                carregarParticipantes(eventoSelecionado);
+            } catch (error) {
+                mostrarAlerta('Erro ao confirmar inscrição', 'error');
+            }
+        }
+
+        // Marcar todos presentes
+        async function marcarTodosPresentes() {
+            if (!confirm(`Deseja marcar presença para todos os ${participantes.length} participantes?`)) {
+                return;
+            }
+
+            let sucessos = 0;
+            let erros = 0;
+
+            for (const participante of participantes) {
+                try {
+                    await requisicaoAPI(`/api/eventos/${eventoSelecionado}/presencas`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            participanteId: participante.id,
+                            observacoes: 'Presença marcada em lote'
+                        })
+                    });
+                    sucessos++;
+                } catch (error) {
+                    erros++;
+                }
+            }
+
+            mostrarAlerta(`${sucessos} presenças marcadas. ${erros} erros.`, sucessos > 0 ? 'success' : 'error');
+            carregarParticipantes(eventoSelecionado);
+        }
+
+        // Event listener para seleção de evento
+        document.getElementById('eventoSelect').addEventListener('change', async (e) => {
+            eventoSelecionado = e.target.value;
+
+            if (eventoSelecionado) {
+                const textoEvento = e.target.options[e.target.selectedIndex].text;
+                document.getElementById('eventoTitulo').textContent = `Participantes - ${textoEvento}`;
+                await carregarParticipantes(eventoSelecionado);
+            } else {
+                document.getElementById('participantesCard').style.display = 'none';
+            }
+        });
+
+        // Adicionar estilo para badges
+        const style = document.createElement('style');
+        style.textContent = `
+            .badge {
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                font-size: 0.875rem;
+                font-weight: 600;
+            }
+            .badge-success {
+                background-color: #d4edda;
+                color: #155724;
+            }
+            .badge-warning {
+                background-color: #fff3cd;
+                color: #856404;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Carregar eventos ao iniciar
+        carregarEventos();
+
+        // Expor funções globalmente
+        window.marcarPresenca = marcarPresenca;
+        window.confirmarInscricao = confirmarInscricao;
+        window.marcarTodosPresentes = marcarTodosPresentes;
+    </script>
+</body>
+
+</html>

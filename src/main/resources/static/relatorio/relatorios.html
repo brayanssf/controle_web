@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - Sistema de Controle de Eventos</title>
+    <link rel="stylesheet" href="/css/app.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <h1>Sistema de Controle de Eventos</h1>
+            <nav></nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Estatísticas -->
+        <div class="card">
+            <h2>Estatísticas Gerais</h2>
+            <div class="stats-grid" id="statsContainer">
+                <div class="stat-card">
+                    <h3 id="totalParticipantes">-</h3>
+                    <p>Total de Participantes</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalEventos">-</h3>
+                    <p>Total de Eventos</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="grid">
+            <div class="card">
+                <h2>Distribuição por Gênero</h2>
+                <div class="chart-container">
+                    <canvas id="graficoGenero"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Participantes por Evento</h2>
+                <div class="chart-container">
+                    <canvas id="graficoEventos"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros e Exportação -->
+        <div class="card">
+            <h2>Exportar Relatório</h2>
+            <form id="exportForm">
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="eventoFiltro">Filtrar por Evento:</label>
+                        <select id="eventoFiltro">
+                            <option value="">Todos os eventos</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dataInicio">Data Início:</label>
+                        <input type="datetime-local" id="dataInicio">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dataFim">Data Fim:</label>
+                        <input type="datetime-local" id="dataFim">
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="button" class="btn btn-success" onclick="exportarExcel()">
+                        📊 Exportar Excel
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="exportarPDF()">
+                        📄 Exportar PDF
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="visualizarRelatorio()">
+                        👁️ Visualizar Dados
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Visualização de Dados -->
+        <div class="card" id="dadosCard" style="display: none;">
+            <h2>Dados do Relatório</h2>
+            <div id="dadosContainer"></div>
+        </div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script>
+        // Verificar acesso admin
+        if (!verificarAcessoAdmin()) {
+            // Redireciona automaticamente
+        }
+
+        let estatisticas = null;
+        let graficoGenero = null;
+        let graficoEventos = null;
+
+        // Carregar estatísticas
+        async function carregarEstatisticas() {
+            try {
+                estatisticas = await requisicaoAPI('/api/relatorios/estatisticas');
+
+                // Atualizar cards de estatísticas
+                document.getElementById('totalParticipantes').textContent =
+                    estatisticas.totalParticipantes || 0;
+                document.getElementById('totalEventos').textContent =
+                    estatisticas.totalEventos || 0;
+
+                // Criar gráficos
+                criarGraficoGenero();
+                criarGraficoEventos();
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar estatísticas', 'error');
+            }
+        }
+
+        // Criar gráfico de gênero
+        function criarGraficoGenero() {
+            const ctx = document.getElementById('graficoGenero');
+            const dados = estatisticas.distribuicaoGenero || {};
+
+            if (graficoGenero) {
+                graficoGenero.destroy();
+            }
+
+            graficoGenero = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(dados),
+                    datasets: [{
+                        data: Object.values(dados),
+                        backgroundColor: [
+                            '#4a90e2',
+                            '#e74c3c',
+                            '#f39c12',
+                            '#27ae60'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        title: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Criar gráfico de eventos
+        function criarGraficoEventos() {
+            const ctx = document.getElementById('graficoEventos');
+            const dados = estatisticas.participantesPorEvento || {};
+
+            if (graficoEventos) {
+                graficoEventos.destroy();
+            }
+
+            // Ordenar por número de participantes (top 10)
+            const ordenado = Object.entries(dados)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            graficoEventos = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ordenado.map(e => e[0]),
+                    datasets: [{
+                        label: 'Participantes',
+                        data: ordenado.map(e => e[1]),
+                        backgroundColor: '#4a90e2'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Carregar eventos para filtro
+        async function carregarEventosParaFiltro() {
+            try {
+                const eventos = await requisicaoAPI('/api/eventos');
+                const select = document.getElementById('eventoFiltro');
+
+                eventos.forEach(evento => {
+                    const option = document.createElement('option');
+                    option.value = evento.id;
+                    option.textContent = evento.titulo;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar eventos para filtro');
+            }
+        }
+
+        // Visualizar relatório
+        async function visualizarRelatorio() {
+            const eventoId = document.getElementById('eventoFiltro').value;
+            const dataInicio = document.getElementById('dataInicio').value;
+            const dataFim = document.getElementById('dataFim').value;
+
+            let url = '/api/relatorios/participantes?';
+            if (eventoId) url += `eventoId=${eventoId}&`;
+            if (dataInicio) url += `inicio=${dataInicio}&`;
+            if (dataFim) url += `fim=${dataFim}`;
+
+            try {
+                const participantes = await requisicaoAPI(url);
+                renderizarDados(participantes);
+                document.getElementById('dadosCard').style.display = 'block';
+                document.getElementById('dadosCard').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar dados do relatório', 'error');
+            }
+        }
+
+        // Renderizar dados na tabela
+        function renderizarDados(participantes) {
+            const container = document.getElementById('dadosContainer');
+
+            if (participantes.length === 0) {
+                container.innerHTML = '<p>Nenhum participante encontrado com os filtros aplicados.</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <p><strong>Total de registros:</strong> ${participantes.length}</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Evento</th>
+                            <th>Gênero</th>
+                            <th>Data Inscrição</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${participantes.map(p => `
+                            <tr>
+                                <td>${p.usuario.nome}</td>
+                                <td>${p.usuario.email}</td>
+                                <td>${p.evento.titulo}</td>
+                                <td>${traduzirGenero(p.genero)}</td>
+                                <td>${formatarData(p.inscritoEm)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Traduzir gênero
+        function traduzirGenero(genero) {
+            const traducoes = {
+                'MASCULINO': 'Masculino',
+                'FEMININO': 'Feminino',
+                'OUTRO': 'Outro',
+                'NAO_INFORMAR': 'Não informado'
+            };
+            return traducoes[genero] || genero;
+        }
+
+        // Exportar para Excel (usando backend)
+        async function exportarExcel() {
+            const eventoId = document.getElementById('eventoFiltro').value;
+            const dataInicio = document.getElementById('dataInicio').value;
+            const dataFim = document.getElementById('dataFim').value;
+
+            let url = '/api/relatorios/participantes/exportar?formato=xlsx';
+            if (eventoId) url += `&eventoId=${eventoId}`;
+            if (dataInicio) url += `&inicio=${dataInicio}`;
+            if (dataFim) url += `&fim=${dataFim}`;
+
+            try {
+                const token = obterToken();
+                const response = await fetch(API_BASE + url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Erro ao exportar');
+
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = 'relatorio_participantes.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+
+                mostrarAlerta('Excel exportado com sucesso!', 'success');
+            } catch (error) {
+                mostrarAlerta('Erro ao exportar Excel: ' + error.message, 'error');
+            }
+        }
+
+        // Exportar para PDF (usando jsPDF no frontend)
+        async function exportarPDF() {
+            const eventoId = document.getElementById('eventoFiltro').value;
+            const dataInicio = document.getElementById('dataInicio').value;
+            const dataFim = document.getElementById('dataFim').value;
+
+            let url = '/api/relatorios/participantes?';
+            if (eventoId) url += `eventoId=${eventoId}&`;
+            if (dataInicio) url += `inicio=${dataInicio}&`;
+            if (dataFim) url += `fim=${dataFim}`;
+
+            try {
+                const participantes = await requisicaoAPI(url);
+
+                if (participantes.length === 0) {
+                    mostrarAlerta('Nenhum dado para exportar', 'warning');
+                    return;
+                }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // Título
+                doc.setFontSize(16);
+                doc.text('Relatório de Participantes', 14, 15);
+
+                // Data de geração
+                doc.setFontSize(10);
+                doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 22);
+
+                // Tabela
+                let y = 30;
+                doc.setFontSize(8);
+
+                participantes.forEach((p, index) => {
+                    if (y > 280) {
+                        doc.addPage();
+                        y = 15;
+                    }
+
+                    doc.text(`${index + 1}. ${p.usuario.nome} - ${p.usuario.email}`, 14, y);
+                    y += 5;
+                    doc.text(`   Evento: ${p.evento.titulo}`, 14, y);
+                    y += 5;
+                    doc.text(`   Gênero: ${traduzirGenero(p.genero)} | Inscrição: ${formatarData(p.inscritoEm)}`, 14, y);
+                    y += 8;
+                });
+
+                doc.save('relatorio_participantes.pdf');
+                mostrarAlerta('PDF exportado com sucesso!', 'success');
+            } catch (error) {
+                mostrarAlerta('Erro ao exportar PDF: ' + error.message, 'error');
+            }
+        }
+
+        // Inicializar
+        carregarEstatisticas();
+        carregarEventosParaFiltro();
+
+        // Expor funções globalmente
+        window.exportarExcel = exportarExcel;
+        window.exportarPDF = exportarPDF;
+        window.visualizarRelatorio = visualizarRelatorio;
+    </script>
+</body>
+
+</html>
