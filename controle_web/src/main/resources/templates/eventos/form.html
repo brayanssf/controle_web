@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário de Evento - Sistema de Controle de Presença</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            padding: 1rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-link {
+            color: #2d3748;
+            font-weight: 500;
+            margin: 0 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--primary-color);
+        }
+
+        .container-main {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .page-header {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .card {
+            background: white;
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control,
+        .form-select {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+        }
+
+        textarea.form-control {
+            min-height: 120px;
+        }
+
+        .invalid-feedback {
+            color: #fc466b;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+            transform: translateY(-2px);
+        }
+
+        footer {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 2rem 0;
+            margin-top: 4rem;
+            text-align: center;
+            color: #718096;
+        }
+
+        @media (max-width: 768px) {
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .card-body {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-calendar-check-fill"></i> Controle de Presença
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="bi bi-house-fill"></i> Início
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/eventos">
+                            <i class="bi bi-calendar-event"></i> Eventos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/presencas">
+                            <i class="bi bi-check-circle"></i> Presenças
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/usuarios">
+                            <i class="bi bi-people-fill"></i> Usuários
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-main">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>
+                <i class="bi bi-calendar-plus"></i>
+                <span th:text="${evento.id != null ? 'Editar Evento' : 'Novo Evento'}"></span>
+            </h1>
+        </div>
+
+        <!-- Formulário -->
+        <div class="card">
+            <div class="card-body">
+                <form th:action="@{/eventos/salvar}" th:object="${evento}" method="post">
+                    <input type="hidden" th:field="*{id}">
+
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">
+                            <i class="bi bi-card-text"></i> Nome do Evento
+                        </label>
+                        <input type="text" class="form-control" id="nome" th:field="*{nome}"
+                            th:classappend="${#fields.hasErrors('nome')} ? 'is-invalid' : ''"
+                            placeholder="Digite o nome do evento">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">
+                            <i class="bi bi-text-paragraph"></i> Descrição
+                        </label>
+                        <textarea class="form-control" id="descricao" th:field="*{descricao}"
+                            th:classappend="${#fields.hasErrors('descricao')} ? 'is-invalid' : ''"
+                            placeholder="Descreva o evento"></textarea>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('descricao')}"
+                            th:errors="*{descricao}"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="local" class="form-label">
+                            <i class="bi bi-geo-alt"></i> Local
+                        </label>
+                        <input type="text" class="form-control" id="local" th:field="*{local}"
+                            th:classappend="${#fields.hasErrors('local')} ? 'is-invalid' : ''"
+                            placeholder="Digite o local do evento">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('local')}" th:errors="*{local}"></div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="data" class="form-label">
+                                <i class="bi bi-calendar3"></i> Data
+                            </label>
+                            <input type="text" class="form-control" id="data" th:field="*{data}"
+                                th:classappend="${#fields.hasErrors('data')} ? 'is-invalid' : ''"
+                                placeholder="DD/MM/AAAA">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('data')}" th:errors="*{data}">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label for="horario" class="form-label">
+                                <i class="bi bi-clock"></i> Horário
+                            </label>
+                            <input type="text" class="form-control" id="horario" th:field="*{horario}"
+                                th:classappend="${#fields.hasErrors('horario')} ? 'is-invalid' : ''"
+                                placeholder="HH:MM">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('horario')}"
+                                th:errors="*{horario}"></div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Salvar
+                        </button>
+                        <a href="/eventos" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Sistema de Controle de Presença - UNINCOR. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
